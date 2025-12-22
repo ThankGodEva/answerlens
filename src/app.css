@@ -1,0 +1,157 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f8fafc; /* dark backdrop */
+  color: #0F172A;
+  font-family: -apple-system, BlinkMacsystemFont, 'Segoe UI', Roboto, Helvetica, Arial;
+}
+
+/* APP CONTAINER */
+.container {
+  min-height: 100vh;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 480px; /* 👈 keeps it centered on PC */
+  background: #f8fafc;
+  padding: 0 20px;
+}
+
+/* TAB BAR */
+.tabBar {
+  display: flex;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 16px;
+  font-weight: 700;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #1f2937; /* darker */
+  font-size: 16px;
+}
+
+.tabButton:hover {
+  background: #f1f5f9;
+}
+
+.activeTab {
+  border-bottom: 4px solid #0066cc;
+  color: #0066cc;
+}
+
+/* CONTENT */
+.scroll {
+  padding: 24px 0;
+  width: 100%;
+}
+
+/* TITLES */
+.title {
+  font-size: 30px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-weight: 900;
+  color: #0066cc;
+}
+
+.subtitle {
+  font-size: 18px;
+  text-align: center;
+  color: #334155; /* darker than before */
+  margin-bottom: 28px;
+}
+
+/* BUTTONS */
+.buttonRow {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.button,
+.buttonAlt {
+  height: 50px;
+  padding: 10px 16px;
+  color: white;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.button {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+}
+
+.buttonAlt {
+  background: white;
+  color: #2563EB;
+  border: 1px solid #E5E7EB;
+}
+
+.button:hover,
+.buttonAlt:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+}
+
+/* IMAGE PREVIEW */
+.image {
+  width: 100%;
+  max-height: 320px;
+  margin-top: 12px;
+  border-radius: 16px;
+  object-fit: contain;
+  background: #e5e7eb;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* STATUS TEXT */
+.status {
+  text-align: center;
+  margin-top: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ANSWERS BOX */
+.answersBox {
+  background: #ffffff;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.answersBox h3 {
+  margin: 0 0 10px;
+  color: #0f172a;
+}
+
+.answersBox p {
+  line-height: 1.7;
+  color: #1f2937;
+}
