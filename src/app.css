@@ -25,6 +25,7 @@ body {
 
 /* TAB BAR */
 .tabBar {
+  width: 480px;
   display: flex;
   background: #ffffff;
   box-shadow: 0 3px 8px rgba(0,0,0,0.12);
@@ -42,6 +43,7 @@ body {
   cursor: pointer;
   color: #1f2937; /* darker */
   font-size: 16px;
+  border-bottom: 4px solid transparent;
 }
 
 .tabButton:hover {
@@ -154,4 +156,78 @@ body {
 .answersBox p {
   line-height: 1.7;
   color: #1f2937;
+}
+
+/* BOTTOM NAV */
+/* 
+
+.navItem span {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+*/
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px; /* matches your app container */
+  height: 64px;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+
+  z-index: 100;
+}
+
+.navItem {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.navItem span {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.activeNav {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* VISIBILITY HELPERS */
+.desktopOnly {
+  display: flex;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+/* MOBILE VIEW */
+@media (max-width: 768px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: flex;
+  }
+
+  /* prevent content from hiding behind bottom nav */
+  .scroll {
+    padding-bottom: 70px;
+  }
 }

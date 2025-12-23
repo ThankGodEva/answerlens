@@ -152,7 +152,7 @@ export default function App() {
   return (
     <div className="container">
       {/* Tabs */}
-      <div className="tabBar">
+      <div className="tabBar desktopOnly">
         <button
           className={`tabButton ${activeTab === 'home' ? 'activeTab' : ''}`}
           onClick={() => switchTab('home')}
@@ -357,6 +357,26 @@ export default function App() {
         )}
 
       </div>
+
+      {/* BOTTOM NAVIGATION */}
+      <div className="bottomNav mobileOnly">
+        <button
+          className={activeTab === 'home' ? 'navItem activeNav' : 'navItem'}
+          onClick={() => switchTab('home')}
+        >
+          <span>🏠</span>
+          <small>Home</small>
+        </button>
+
+        <button
+          className={activeTab === 'history' ? 'navItem activeNav' : 'navItem'}
+          onClick={() => switchTab('history')}
+        >
+          <span>🕘</span>
+          <small>History</small>
+        </button>
+      </div>
+
     </div>
   );
 }
