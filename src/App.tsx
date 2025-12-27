@@ -168,8 +168,45 @@ export default function App() {
       </div>
 
       <div className="scroll">
+
+        {/* CROPPING MODE – FULL SCREEN */}
+        {isCropping && rawImage && (
+          <>
+            <h1 className="title">Crop Image</h1>
+            <p className="subtitle">Adjust before analysis</p>
+
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(c) => setCompletedCrop(c)}
+            >
+              <img
+                src={rawImage}
+                ref={imgRef}
+                style={{ maxWidth: '100%' }}
+              />
+            </ReactCrop>
+
+            <div className="buttonRow" style={{ marginTop: 20 }}>
+              <button className="buttonAlt" onClick={confirmCrop}>
+                Confirm Crop
+              </button>
+
+              <button
+                className="button"
+                onClick={() => {
+                  setIsCropping(false);
+                  setRawImage(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+
         {/* HOME TAB */}
-        {activeTab === 'home' && (
+        {!isCropping && activeTab === 'home' && (
           <>
             <h1 className="title">AnswerLens AI</h1>
             <p className="subtitle">
@@ -205,35 +242,6 @@ export default function App() {
               </label>
             </div>
 
-            {/* CROPPER */}
-            {isCropping && rawImage && (
-              <div style={{ marginTop: 20 }}>
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
-                  onComplete={(c) => setCompletedCrop(c)}
-                >
-                  <img
-                    src={rawImage}
-                    ref={imgRef}
-                    style={{ maxWidth: '100%' }}
-                  />
-                </ReactCrop>
-
-                <div
-                  className="buttonRow"
-                  style={{ marginTop: 15 }}
-                >
-                  <button
-                    className="buttonAlt"
-                    onClick={confirmCrop}
-                  >
-                    Confirm Crop
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* PREVIEW */}
             {image && !isCropping && (
               <>
@@ -267,13 +275,13 @@ export default function App() {
                 }}
               >
                 {answers}
-              </pre>
+              </pre> 
             )}
 
           </>
         )}
 
-        {activeTab === 'history' && (
+        {!isCropping && activeTab === 'history' && (
           <>
             <h1 className="title">History</h1>
             <p className="subtitle">Your previous answers</p>
