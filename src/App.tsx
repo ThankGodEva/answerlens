@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
+import Auth from './components/Auth';
 import { 
   Camera, 
   Type, 
@@ -18,7 +20,9 @@ import {
   X,
   UploadCloud,
   Layers,
-  Sparkles
+  Sparkles,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -28,13 +32,13 @@ type InputMode = 'text' | 'image';
 
 // --- Components ---
 
-const Navbar = () => (
+const Navbar = ({ session, onSignOut }: { session: any, onSignOut: () => void }) => (
   <nav className="fixed top-0 left-0 right-0 h-16 bg-slate-900 text-white z-50 flex items-center justify-between px-6 shadow-lg">
     <div className="flex items-center gap-2">
       <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
         <Sparkles size={20} className="text-white" />
       </div>
-      <span className="font-bold text-xl tracking-tight">
+      <span className="font-bold text-lg md:text-xl tracking-tight">
         AnswerLens <span className="text-cyan-400">AI</span>
       </span>
     </div>
@@ -45,12 +49,30 @@ const Navbar = () => (
     </div>
 
     <div className="flex items-center gap-4">
-      <button className="text-sm font-medium text-slate-300 hover:text-white transition-colors cursor-not-allowed">
-        Log In
-      </button>
-      <button className="bg-cyan-500 hover:bg-cyan-400 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-md shadow-cyan-500/20 active:scale-95">
-        Sign Up
-      </button>
+      {session ? (
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-300">
+            <UserIcon size={16} className="text-cyan-400" />
+            <span className="max-w-[150px] truncate">{session.user.email}</span>
+          </div>
+          <button 
+            onClick={onSignOut}
+            className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <button className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            Log In
+          </button>
+          <button className="bg-cyan-500 hover:bg-cyan-400 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-md shadow-cyan-500/20 active:scale-95">
+            Sign Up
+          </button>
+        </div>
+      )}
     </div>
   </nav>
 );
@@ -62,11 +84,11 @@ const HeroWorkspace = ({ mode, setMode, onSolve, question, setQuestion }: { mode
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
+      <h1 className="text-2xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
         Paste your question or drop an image. <br />
         <span className="text-cyan-600">Get instant AI explanations.</span>
       </h1>
-      <p className="text-slate-500 text-lg mb-10 max-w-xl mx-auto">
+      <p className="text-slate-500 text-base md:text-lg mb-10 max-w-xl mx-auto">
         Your pocket genius for math, science, and more. Upload once, understand forever.
       </p>
 
@@ -76,14 +98,14 @@ const HeroWorkspace = ({ mode, setMode, onSolve, question, setQuestion }: { mode
         <div className="flex border-b border-slate-100 p-1">
           <button 
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold transition-all rounded-t-xl ${mode === 'text' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs md:text-sm font-semibold transition-all rounded-t-xl ${mode === 'text' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Type size={18} />
             Text Input
           </button>
           <button 
             onClick={() => setMode('image')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm font-semibold transition-all rounded-t-xl ${mode === 'image' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs md:text-sm font-semibold transition-all rounded-t-xl ${mode === 'image' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Camera size={18} />
             Image Upload
@@ -103,7 +125,7 @@ const HeroWorkspace = ({ mode, setMode, onSolve, question, setQuestion }: { mode
                 <textarea 
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  className="w-full h-48 p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-cyan-400 focus:ring-0 outline-none transition-all resize-none text-slate-800 placeholder:text-slate-400"
+                  className="w-full h-48 p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-cyan-400 focus:ring-0 outline-none transition-all resize-none text-sm md:text-base text-slate-800 placeholder:text-slate-400"
                   placeholder="Paste your question here (e.g. Solve for x: 3x + 12 = 45)..."
                 />
               </motion.div>
@@ -190,7 +212,7 @@ const ResultView = ({ onReset, question, aiResponse }: { onReset: () => void, qu
               <HelpCircle size={14} />
               Your Question
             </div>
-            <p className="text-slate-700 text-lg md:text-xl leading-relaxed font-medium whitespace-pre-wrap">
+            <p className="text-slate-700 text-base md:text-xl leading-relaxed font-medium whitespace-pre-wrap">
               {question || "No question provided."}
             </p>
           </section>
@@ -231,7 +253,7 @@ const ResultView = ({ onReset, question, aiResponse }: { onReset: () => void, qu
                       "Explaining this in simpler terms..."
                     </div>
                   )}
-                  <div className={`text-slate-700 leading-relaxed whitespace-pre-wrap ${isEli5 ? 'text-base' : 'text-lg'}`}>
+                  <div className={`text-slate-700 leading-relaxed whitespace-pre-wrap ${isEli5 ? 'text-sm md:text-base' : 'text-sm md:text-lg'}`}>
                     {aiResponse}
                   </div>
                 </motion.div>
@@ -273,10 +295,33 @@ const ResultView = ({ onReset, question, aiResponse }: { onReset: () => void, qu
 // --- Main App ---
 
 export default function App() {
+  const [session, setSession] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState<ViewState>('idle');
   const [inputMode, setInputMode] = useState<InputMode>('text');
   const [question, setQuestion] = useState('');
   const [aiResponse, setAiResponse] = useState('');
+
+  useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const handleSolve = async () => {
     if (!question && inputMode === 'text') return;
@@ -352,9 +397,21 @@ export default function App() {
     setView('idle');
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-cyan-500" size={32} />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth onAuthSuccess={() => {}} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-cyan-100 selection:text-cyan-900">
-      <Navbar />
+      <Navbar session={session} onSignOut={handleSignOut} />
       
       <main className="relative">
         <AnimatePresence mode="wait">
