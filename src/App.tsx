@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import Auth from './components/Auth';
-import ImageCropperModal from './components/ImageCropperModal';
 import ContactModal from './components/ContactModal';
 import { 
   Camera, 
@@ -340,7 +339,6 @@ export default function App() {
   // Image related states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
-  const [showCropper, setShowCropper] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -411,15 +409,10 @@ export default function App() {
       const reader = new FileReader();
       reader.onload = () => {
         setSelectedImage(reader.result as string);
-        setShowCropper(true);
+        setCroppedImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleCropComplete = (croppedImage: string) => {
-    setCroppedImage(croppedImage);
-    setShowCropper(false);
   };
 
   const handleSolve = async () => {
@@ -454,19 +447,42 @@ export default function App() {
       console.log('Image Byte Size approx:', Math.round((croppedImage.length * 3) / 4));
     }
 
+    let response;
+    let textData = "";
+
     try {
-      const response = await fetch('/api/solve-question', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      console.log('Webhook Response Status:', response.status);
-      
-      const textData = await response.text();
+      try {
+        console.log('Attempting local Express API proxy request...');
+        response = await fetch('/api/solve-question', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.status === 404 || response.status === 405) {
+          throw new Error(`Proxy returned status ${response.status}. Falling back to direct webhook format.`);
+        }
+        
+        console.log('Webhook Proxy Response Status:', response.status);
+        textData = await response.text();
+      } catch (proxyError) {
+        console.warn('Backend proxy unavailable or failed. Using direct client-side fetch fallback to n8n webhook:', proxyError);
+        response = await fetch('https://n8n.srv1108528.hstgr.cloud/webhook/solve-question', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        console.log('Direct Webhook Response Status:', response.status);
+        textData = await response.text();
+      }
+
       console.log('Raw Webhook Response:', textData.substring(0, 500));
 
       let data;
@@ -553,15 +569,6 @@ export default function App() {
         accept="image/*"
         className="hidden"
       />
-
-      {/* Cropper Modal */}
-      {showCropper && selectedImage && (
-        <ImageCropperModal 
-          image={selectedImage}
-          onClose={() => setShowCropper(false)}
-          onCropComplete={handleCropComplete}
-        />
-      )}
 
       {/* Contact Support Modal */}
       <AnimatePresence>
