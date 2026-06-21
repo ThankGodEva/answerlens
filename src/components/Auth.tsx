@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { 
   Mail, 
   Lock, 
@@ -8,13 +8,14 @@ import {
   ArrowRight, 
   Loader2, 
   Sparkles,
-  ChevronLeft
+  ChevronLeft,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 type AuthMode = 'signin' | 'signup';
 
-export default function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
+export default function Auth({ onAuthSuccess }: { onAuthSuccess: (session?: any) => void }) {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,10 +27,46 @@ export default function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
   const [lastName, setLastName] = useState('');
   const [purpose, setPurpose] = useState('University Student');
 
+  const handleGuestLogin = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onAuthSuccess({
+        user: {
+          email: 'guest@student.edu',
+          id: 'guest-user-123',
+          user_metadata: {
+            first_name: 'Guest',
+            last_name: 'Student',
+            purpose: 'Learning'
+          }
+        }
+      });
+    }, 450);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isSupabaseConfigured) {
+      setTimeout(() => {
+        setLoading(false);
+        onAuthSuccess({
+          user: {
+            email: email || 'guest@student.edu',
+            id: 'guest-user-123',
+            user_metadata: {
+              first_name: firstName || 'Guest',
+              last_name: lastName || 'Student',
+              purpose: purpose || 'Learning'
+            }
+          }
+        });
+      }, 500);
+      return;
+    }
 
     try {
       if (mode === 'signup') {
@@ -46,9 +83,6 @@ export default function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
         });
 
         if (authError) throw authError;
-        
-        // Note: With the SQL trigger set up, we don't need to manually 
-        // insert into the profiles table here. It happens automatically!
         alert('Check your email for the confirmation link!');
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -88,6 +122,15 @@ export default function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+          {!isSupabaseConfigured && (
+            <div className="mb-6 p-4 bg-cyan-50/70 border border-cyan-100 rounded-xl text-[13px] text-cyan-800 leading-relaxed flex gap-3">
+              <Info size={18} className="text-cyan-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong className="font-bold block mb-0.5">Trial Sandbox Mode Active</strong>
+                Learn, crop, and solve questions on the fly. To try out full database features later, set your Supabase secrets in settings.
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <AnimatePresence mode="wait">
               {mode === 'signup' && (
@@ -198,6 +241,20 @@ export default function Auth({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                 </>
               )}
             </button>
+
+            {!isSupabaseConfigured && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleGuestLogin}
+                  disabled={loading}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 flex items-center justify-center gap-2 text-sm border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer"
+                >
+                  <Sparkles size={16} className="text-cyan-600 animate-pulse" />
+                  Continue as Guest (Sandbox Mode)
+                </button>
+              </div>
+            )}
           </form>
 
           <div className="mt-6 pt-6 border-t border-slate-50 text-center">
