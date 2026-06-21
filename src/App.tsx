@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 import Auth from './components/Auth';
+import ImageCropperModal from './components/ImageCropperModal';
+import ContactModal from './components/ContactModal';
 import { 
   Camera, 
   Type, 
@@ -22,7 +24,8 @@ import {
   Layers,
   Sparkles,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -77,91 +80,124 @@ const Navbar = ({ session, onSignOut }: { session: any, onSignOut: () => void })
   </nav>
 );
 
-const HeroWorkspace = ({ mode, setMode, onSolve, question, setQuestion }: { mode: InputMode, setMode: (m: InputMode) => void, onSolve: () => void, question: string, setQuestion: (v: string) => void }) => (
-  <div className="max-w-3xl w-full mx-auto px-4 pt-32 pb-20 text-center">
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <h1 className="text-2xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
-        Paste your question or drop an image. <br />
-        <span className="text-cyan-600">Get instant AI explanations.</span>
-      </h1>
-      <p className="text-slate-500 text-base md:text-lg mb-10 max-w-xl mx-auto">
-        Your pocket genius for math, science, and more. Upload once, understand forever.
-      </p>
+const HeroWorkspace = ({ 
+  onSolve, 
+  question, 
+  setQuestion,
+  imagePreview,
+  onImageSelect
+}: { 
+  onSolve: () => void, 
+  question: string, 
+  setQuestion: (v: string) => void,
+  imagePreview: string | null,
+  onImageSelect: (source: 'gallery' | 'clear') => void
+}) => {
+  const hasInput = question.trim().length > 0 || !!imagePreview;
 
-      {/* Input Card */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden text-left font-sans">
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 p-1">
-          <button 
-            onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs md:text-sm font-semibold transition-all rounded-t-xl ${mode === 'text' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <Type size={18} />
-            Text Input
-          </button>
-          <button 
-            onClick={() => setMode('image')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 text-xs md:text-sm font-semibold transition-all rounded-t-xl ${mode === 'image' ? 'text-cyan-600 bg-cyan-50/50 border-b-2 border-cyan-500' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <Camera size={18} />
-            Image Upload
-          </button>
-        </div>
+  let buttonText = 'Solve It Now';
+  if (question.trim().length > 0 && imagePreview) {
+    buttonText = 'Analyze Photo & Solve';
+  } else if (imagePreview) {
+    buttonText = 'Analyze Photo';
+  } else {
+    buttonText = 'Solve It Now';
+  }
 
-        <div className="p-6">
-          <AnimatePresence mode="wait">
-            {mode === 'text' ? (
-              <motion.div
-                key="text"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="w-full"
-              >
-                <textarea 
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="w-full h-48 p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-cyan-400 focus:ring-0 outline-none transition-all resize-none text-sm md:text-base text-slate-800 placeholder:text-slate-400"
-                  placeholder="Paste your question here (e.g. Solve for x: 3x + 12 = 45)..."
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="image"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="w-full"
-              >
-                <div className="w-full h-48 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center gap-4 group hover:border-cyan-400 transition-colors cursor-pointer">
-                  <div className="p-4 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-cyan-500 transition-colors">
-                    <UploadCloud size={32} />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-slate-600 font-medium">Click or drag photo here</p>
-                    <p className="text-slate-400 text-xs">Supports JPG, PNG up to 10MB</p>
+  return (
+    <div className="max-w-4xl w-full mx-auto px-4 pt-32 pb-20 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4 animate-fade-in">
+          Paste your question or drop an image. <br />
+          <span className="text-cyan-600 font-extrabold">Get instant AI explanations.</span>
+        </h1>
+        <p className="text-slate-500 text-base md:text-lg mb-10 max-w-xl mx-auto">
+          Your pocket genius for math, science, and more. Upload once, understand forever.
+        </p>
+
+        {/* Integrated Input Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden text-left font-sans p-6 md:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {/* Left Box: Text Area */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Type or paste your question
+              </label>
+              <textarea 
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full h-48 md:h-56 p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-cyan-400 focus:ring-0 outline-none transition-all resize-none text-sm md:text-base text-slate-800 placeholder:text-slate-400 shadow-inner"
+                placeholder="Paste your question here (e.g. Solve for x: 3x + 12 = 45)..."
+              />
+            </div>
+
+            {/* Right Box: Image Upload Box */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Add an image (Optional)
+              </label>
+              
+              {imagePreview ? (
+                <div className="relative w-full h-48 md:h-56 rounded-xl overflow-hidden group border border-slate-200">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain bg-slate-100" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <button 
+                      onClick={() => onImageSelect('gallery')}
+                      className="p-3 bg-white text-slate-900 rounded-full hover:bg-cyan-500 hover:text-white transition-all shadow-xl"
+                      title="Upload New"
+                    >
+                      <UploadCloud size={20} />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onImageSelect('clear'); 
+                      }}
+                      className="p-3 bg-white text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-xl"
+                      title="Clear"
+                    >
+                      <X size={20} />
+                    </button>
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ) : (
+                <div 
+                  onClick={() => onImageSelect('gallery')}
+                  className="w-full h-48 md:h-56 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center gap-4 group hover:border-cyan-400 transition-colors cursor-pointer"
+                >
+                  <div className="p-4 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-cyan-500 transition-colors">
+                    <ImageIcon size={32} />
+                  </div>
+                  <div className="text-center px-4">
+                    <p className="text-slate-600 font-medium text-sm">Choose from gallery</p>
+                    <p className="text-slate-400 text-[10px]">JPG, PNG up to 10MB</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           <button 
             onClick={onSolve}
-            className="w-full mt-6 bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-cyan-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+            disabled={!hasInput}
+            className={`w-full mt-6 md:mt-8 font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group ${
+              hasInput 
+                ? 'bg-cyan-500 hover:bg-cyan-400 text-white shadow-cyan-500/30 active:scale-[0.98]' 
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+            }`}
           >
-            Solve It Now
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            {buttonText}
+            <ArrowRight size={18} className={`${hasInput ? 'group-hover:translate-x-1' : ''} transition-transform`} />
           </button>
         </div>
-      </div>
-    </motion.div>
-  </div>
-);
+      </motion.div>
+    </div>
+  );
+};
 
 const LoadingState = () => (
   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 pt-16">
@@ -298,14 +334,47 @@ export default function App() {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState<ViewState>('idle');
-  const [inputMode, setInputMode] = useState<InputMode>('text');
   const [question, setQuestion] = useState('');
   const [aiResponse, setAiResponse] = useState('');
 
+  // Image related states
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      // Mock an elegant session for local guest developer workspace
+      setSession({
+        user: {
+          email: 'guest@student.edu',
+          id: 'guest-user-123',
+          user_metadata: {
+            first_name: 'Guest',
+            last_name: 'Student',
+            purpose: 'Learning'
+          }
+        }
+      });
+      setAuthLoading(false);
+      return;
+    }
+
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setAuthLoading(false);
+    }).catch(err => {
+      console.warn("Supabase session check failed, falling back to guest mode:", err);
+      setSession({
+        user: {
+          email: 'guest@student.edu',
+          id: 'guest',
+          user_metadata: { first_name: 'Guest' }
+        }
+      });
       setAuthLoading(false);
     });
 
@@ -320,34 +389,91 @@ export default function App() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    } else {
+      setSession(null);
+    }
+  };
+
+  const handleImageSelect = (source: 'gallery' | 'clear') => {
+    if (source === 'gallery') {
+      fileInputRef.current?.click();
+    } else if (source === 'clear') {
+      setCroppedImage(null);
+      setSelectedImage(null);
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImage(reader.result as string);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setCroppedImage(croppedImage);
+    setShowCropper(false);
   };
 
   const handleSolve = async () => {
-    if (!question && inputMode === 'text') return;
+    // Validation
+    const hasText = question.trim().length > 0;
+    const hasImage = !!croppedImage;
+
+    if (!hasText && !hasImage) {
+      alert("Please enter a question or upload an image first.");
+      return;
+    }
     
     setView('loading');
     setAiResponse('');
 
+    const calculatedMode = croppedImage ? 'image' : 'text';
+    const payload = { 
+      question: question,
+      mode: calculatedMode,
+      image: croppedImage, // Changed key to 'image' as it's more standard in n8n
+      imageData: croppedImage, // Keeping imageData for backward compatibility with your workflow
+      timestamp: new Date().toISOString(),
+      userId: session?.user?.id
+    };
+
+    console.log('--- AnswerLens Debug: Sending Request ---');
+    console.log('Mode:', calculatedMode);
+    console.log('Question Length:', question.length);
+    console.log('Image Attached:', !!croppedImage);
+    if (croppedImage) {
+      console.log('Image Data Sample:', croppedImage.substring(0, 50) + '...');
+      console.log('Image Byte Size approx:', Math.round((croppedImage.length * 3) / 4));
+    }
+
     try {
-      const response = await fetch('https://n8n.srv1108528.hstgr.cloud/webhook/solve-question', {
+      const response = await fetch('/api/solve-question', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          question: question,
-          mode: inputMode,
-          timestamp: new Date().toISOString()
-        })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
       
-      const textData = await response.text();
-      let data;
+      console.log('Webhook Response Status:', response.status);
       
-      // Step 1: Attempt to parse JSON
+      const textData = await response.text();
+      console.log('Raw Webhook Response:', textData.substring(0, 500));
+
+      let data;
       try {
         data = textData ? JSON.parse(textData) : null;
       } catch (e) {
-        console.warn('Webhook response was not valid JSON, using raw text.');
+        console.warn('Webhook response was not valid JSON.');
         data = textData;
       }
 
@@ -406,13 +532,47 @@ export default function App() {
   }
 
   if (!session) {
-    return <Auth onAuthSuccess={() => {}} />;
+    return <Auth onAuthSuccess={(guestSession) => {
+      if (guestSession) {
+        setSession(guestSession);
+      } else {
+        supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+      }
+    }} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-cyan-100 selection:text-cyan-900">
       <Navbar session={session} onSignOut={handleSignOut} />
       
+      {/* Hidden Inputs */}
+      <input 
+        type="file"
+        ref={fileInputRef}
+        onChange={onFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Cropper Modal */}
+      {showCropper && selectedImage && (
+        <ImageCropperModal 
+          image={selectedImage}
+          onClose={() => setShowCropper(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* Contact Support Modal */}
+      <AnimatePresence>
+        {showContactModal && (
+          <ContactModal 
+            isOpen={showContactModal}
+            onClose={() => setShowContactModal(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <main className="relative">
         <AnimatePresence mode="wait">
           {view === 'idle' && (
@@ -424,11 +584,11 @@ export default function App() {
               transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <HeroWorkspace 
-                mode={inputMode} 
-                setMode={setInputMode} 
                 onSolve={handleSolve} 
                 question={question}
                 setQuestion={setQuestion}
+                imagePreview={croppedImage}
+                onImageSelect={handleImageSelect}
               />
             </motion.div>
           )}
@@ -470,11 +630,16 @@ export default function App() {
           <div className="flex flex-wrap justify-center gap-10 text-sm">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <button 
+              onClick={() => setShowContactModal(true)} 
+              className="hover:text-white transition-colors cursor-pointer outline-none font-medium"
+            >
+              Contact
+            </button>
             <a href="#" className="hover:text-white transition-colors text-cyan-400 font-semibold tracking-wide uppercase text-[10px]">Tutor Partners</a>
           </div>
           
-          <p className="text-[11px] font-medium uppercase tracking-[0.2em]">© 2024 AnswerLens. Built for the future of learning.</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.2em]">© 2026 AnswerLens. Built for the future of learning.</p>
         </div>
       </footer>
     </div>
